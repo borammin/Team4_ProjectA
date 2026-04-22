@@ -1,5 +1,5 @@
 # Team4_ProjectA: Project A: File Converter
-**Team Name:** Team4 
+**Team Name:** TuffCloud
 **Team Members:** Boram Min, Ryan Kim, Hayden Robinette, Nimisha Vadlamudi
 **Course:** DS2002
 
