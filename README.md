@@ -15,18 +15,7 @@ Create 2 S3 buckets with the following directory structure:
 * ds2002-team4-output
 
 ### 2. Database Initialization 
-Connect to your RDS instance and run the following SQL script to initialize the logging table:
-```sql
-CREATE TABLE processing_logs (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    input_key VARCHAR(255),
-    output_key VARCHAR(255),
-    bucket_name VARCHAR(100),
-    timestamp DATETIME,
-    status VARCHAR(20),
-    error_message TEXT
-);
-```
+Connect to your RDS instance. Database name: team4
 
 ### 3. Compute Environment 
 * IAM Role: Create a role for Lambda with permissions for S3:GetObject, S3:PutObject, and RDS:ExecuteStatement.
