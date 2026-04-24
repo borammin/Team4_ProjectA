@@ -21,6 +21,7 @@ Connect to your RDS instance. Database name: team4
 * IAM Role: Create a role for Lambda with permissions for S3:GetObject, S3:PutObject, and RDS:ExecuteStatement.
 * Trigger: Add an S3 Event Notification to the bucket. Set the event type to All object create events and the prefix to input.
 * Environment: Ensure the Lambda has access to the pymysql library.
+* Lambda: Named "csv-to-json-converter 
 
 ## Usage
 ### Running the Pipeline -
