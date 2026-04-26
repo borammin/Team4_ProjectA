@@ -70,8 +70,6 @@ CREATE TABLE IF NOT EXISTS processing_logs (
 );
 ```
 
-> **Assumption:** The RDS instance is already running and accessible from within the same AWS VPC as the Lambda function.
-
 ### 3. Lambda Function Setup
 
 **Function name:** `csv-to-json-converter`  
@@ -106,7 +104,6 @@ Set the following in **Lambda → Configuration → Environment variables**:
 | `DB_NAME` | `team4` |
 | `OUTPUT_BUCKET` | `ds2002-team4-output` |
 
-> **Note:** AWS credentials are NOT hardcoded. The Lambda uses its IAM execution role automatically via boto3.
 
 #### S3 Trigger
 Add an S3 Event Notification on `ds2002-team4-input`:
