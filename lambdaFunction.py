@@ -1,4 +1,6 @@
 import json
+import csv
+import io
 
 #for dealing with S3 buckets
 import boto3
@@ -8,7 +10,22 @@ import pymysql
 from datetime import datetime
 import os
 
-s3 = boto3.client('s3', region_name="us-east-1")
+s3 = boto3.client('s3', 
+    aws_access_key_id= os.environ['AWS_ID'],
+    aws_secret_access_key= os.environ['AWS_KEY'],
+    region_name='us-east-1'
+    )
+
+
+def extractDataFromCSV(bucket, input_key):
+    """Takes the csv that was uploaded and parses it into a dict"""
+    response = s3.get_object(Bucket=bucket, Key=input_key)
+    csv_content = response['Body'].read().decode('utf-8')
+
+    readData = csv.DictReader(io.StringIO(csv_content))
+    data = [rowData for rowData in readData]
+
+    return data
 
 
 
@@ -39,45 +56,70 @@ def uploadOutput(bucket, output_key, json_content):
 
 
 
-
-def logToDB(input_key, output_key, bucket_name, status, error_message):
-    """logs the file conversion attempt in the database"""
-
-    query = """INSERT INTO processing_logs 
-    (input_key, output_key, bucket_name, datetime, status, error_message) 
-    VALUES (%s, %s, %s, %s, %s, %s)"""
-    values = (input_key, output_key, bucket_name, datetime.now(), status, error_message)
-    
-    DB_HOST= os.environ['DB_HOST']
-    DB_USER= os.environ['DB_USER']
-    DB_PASS= os.environ['DB_PASS']
-    DB_NAME= os.environ['DB_NAME']
-
-    conn = pymysql.connect(
-        host=DB_HOST, 
-        user=DB_USER, 
-        password=DB_PASS, 
-        database=DB_NAME
+def logToDB(input_key, output_key, input_bucket, status, error_message):
+    """Logs processing result to RDS MySQL"""
+    try:
+        conn = pymysql.connect(
+            host=os.environ['DB_HOST'],
+            user=os.environ['DB_USER'],
+            password=os.environ['DB_PASS'],
+            database=os.environ['DB_NAME'],
+            connect_timeout=5
         )
-    with conn.cursor() as cursor:
-        cursor.execute(query, values)
-    conn.commit()
-    conn.close()
+
+        query = """
+            INSERT INTO processing_logs
+            (input_key, output_key, bucket_name, timestamp, status, error_message)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """
+
+        values = (
+            input_key,
+            output_key,
+            input_bucket,        
+            datetime.now(),
+            status,
+            error_message
+        )
+
+        with conn.cursor() as cursor:
+            cursor.execute(query, values)
+
+        conn.commit()
+
+    except Exception as e:
+        print("DB LOGGING ERROR:", str(e))
+
+    finally:
+        try:
+            conn.close()
+        except:
+            pass
 
 def lambda_handler(event, context):
     # TODO implement
             
-    #TODO get the bucket name, input_key, and make output_key based on input_key from the event handler
+    input_bucket = event['Records'][0]['s3']['bucket']['name']
+    output_bucket = input_bucket.replace("input", "output")
+    input_key = event['Records'][0]['s3']['object']['key']
+    output_key = input_key.replace(".csv", ".json")
 
-    #TODO read in the csv and extract the row data, extractCSV_Data(bucket, input_key)
 
-    json_content = convertToJSON(data)
 
-    status, error_message = uploadOutput(bucket, output_key, json_content)
+    status = "SUCCESS"
+    error_message = None
+    try:
+        data = extractDataFromCSV(input_bucket, input_key)
+        json_content = convertToJSON(data)
+        status, error_message = uploadOutput(output_bucket, output_key, json_content)
+    except Exception as e:
+        status = "FAILURE"
+        error_message = str(e)
+            
 
-    logToDB(input_key, output_key, bucket, status, error_message)
+    logToDB(input_key, output_key, input_bucket, status, error_message)
 
     return {
         'statusCode': 200,
-        'body': json.dumps('Hello from Lambda!')
+        'body': f'Conversion of {input_bucket}/{input_key} -----JSON TRANSFORMATION-----> {output_bucket}/{output_key}'
     }
