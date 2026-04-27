@@ -10,12 +10,14 @@ import pymysql
 from datetime import datetime
 import os
 
+# Initialize S3 client using environment variables for security
 s3 = boto3.client('s3', 
     aws_access_key_id= os.environ['AWS_ID'],
     aws_secret_access_key= os.environ['AWS_KEY'],
     region_name='us-east-1'
     )
 
+#Fetches a CSV file from an S3 bucket and converts it into a list of dictionaries.
 
 def extractDataFromCSV(bucket, input_key):
     """Takes the csv that was uploaded and parses it into a dict"""
@@ -27,7 +29,7 @@ def extractDataFromCSV(bucket, input_key):
 
     return data
 
-
+# Converts Python list/dictionary data into JSON format.
 
 def convertToJSON(data):
     """Takes the rows of data and turn it into json data"""
@@ -35,6 +37,7 @@ def convertToJSON(data):
 
     return json_content.encode('utf-8')
 
+# Uploads JSON content to the specified S3 output bucket.
 
 def uploadOutput(bucket, output_key, json_content):
     """Uploads json to output bucket"""
@@ -54,7 +57,7 @@ def uploadOutput(bucket, output_key, json_content):
 
     return status, error_message
 
-
+# Logs the processing result (success/failure) into an RDS MySQL database.
 
 def logToDB(input_key, output_key, input_bucket, status, error_message):
     """Logs processing result to RDS MySQL"""
@@ -96,6 +99,8 @@ def logToDB(input_key, output_key, input_bucket, status, error_message):
         except:
             pass
 
+# Main AWS Lambda handler triggered by S3 upload event.
+    
 def lambda_handler(event, context):
     # TODO implement
             
